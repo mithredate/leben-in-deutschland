@@ -355,6 +355,10 @@ h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .expl summary { font-weight: 700; cursor: pointer; }
 .expl p { margin-top: 8px; color: var(--muted); }
 
+.srcline { font-size: 12.5px !important; margin-top: 8px; }
+.srcline a { color: var(--red); }
+.disclaimer { color: var(--muted); opacity: 0.85; }
+
 /* ---------------- overlay (study/exam sessions) */
 
 .overlay {

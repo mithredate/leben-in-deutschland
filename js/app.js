@@ -135,6 +135,13 @@ function renderHome() {
 
 // ---------------------------------------------------------------- quiz card (shared)
 
+// "Quelle: …" line under an explanation, with the honesty disclaimer
+function sourceLine(q) {
+  if (!q.src || !q.src.u) return '';
+  return `<p class="srcline">Quelle: <a href="${esc(q.src.u)}" target="_blank" rel="noopener">${esc(q.src.t || q.src.u)}</a>
+    <span class="disclaimer">· KI-erstellte Erklärung, ohne Gewähr</span></p>`;
+}
+
 // Renders one question into `container`. opts: {mode:'study'|'exam', picked, onAnswer, lang}
 function questionCard(container, q, opts = {}) {
   const lang = opts.lang || store.settings.lang;
@@ -173,7 +180,7 @@ function questionCard(container, q, opts = {}) {
                 <span>${esc((en.answers || [])[i] || q.answers[i])}</span>
               </div>`).join('')}
           </div>
-          ${en.explanation ? `<p class="back-expl">${esc(en.explanation)}</p>` : ''}
+          ${en.explanation ? `<p class="back-expl">${esc(en.explanation)}</p>${sourceLine(q)}` : ''}
           <button class="btn btn-ghost" data-flip>← Zurück zur Frage</button>
         </div>` : ''}
       </div>
@@ -217,6 +224,7 @@ function questionCard(container, q, opts = {}) {
       $feedback.innerHTML = `
         <p class="verdict ${correct ? 'ok' : 'bad'}">${correct ? 'Richtig!' : 'Leider falsch.'}</p>
         ${expl ? `<details class="expl" ${correct ? '' : 'open'}><summary>Erklärung</summary><p>${esc(expl)}</p>
+          ${sourceLine(q)}
           ${altExpl ? `<button class="linkbtn" data-alt>Auf ${lang === 'en' ? 'Deutsch' : 'Englisch'} zeigen</button><p class="hidden" data-altp>${esc(altExpl)}</p>` : ''}
         </details>` : ''}`;
       const altBtn = $feedback.querySelector('[data-alt]');
@@ -457,7 +465,7 @@ function startExam() {
               ${q.image ? `<img class="qimg qimg-small" src="img/${esc(q.image)}" alt="" loading="lazy">` : ''}
               <p class="wa bad">Deine Antwort: ${pk != null ? esc(q.answers[pk]) : '–'}</p>
               <p class="wa ok">Richtig: ${esc(q.answers[q.correct])}</p>
-              ${q.en && q.en.explanation ? `<details class="expl"><summary>Erklärung</summary><p>${esc(store.settings.lang === 'en' ? q.en.explanation : (q.explanation_de || q.en.explanation))}</p></details>` : ''}
+              ${q.en && q.en.explanation ? `<details class="expl"><summary>Erklärung</summary><p>${esc(store.settings.lang === 'en' ? q.en.explanation : (q.explanation_de || q.en.explanation))}</p>${sourceLine(q)}</details>` : ''}
             </div>`).join('')}
         </div>
         <button class="btn btn-primary btn-big" data-drill>Fehler jetzt üben (${wrong.length})</button>` : ''}
