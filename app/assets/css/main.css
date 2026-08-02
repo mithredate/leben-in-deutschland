@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Theme tokens as CSS variables so the manual theme override (data-theme on
+   <html>) and the system preference compose. The two dark blocks must stay
+   identical. */
+:root {
+  --ink: #1a1a1f;
+  --paper: #fafaf7;
+  --card: #ffffff;
+  --line: #e6e4dd;
+  --muted: #5b5b66;
+  --gold: #ffcc00;
+  --gold-ink: #1a1a1f;
+  --red: #dd3a2a;
+  --green: #2e7d46;
+  --green-soft: #e3f0e7;
+  --red-soft: #fbe9e6;
+  --band-black: #1a1a1f;
+  --cd-bg: #1a1a1f;
+  --cd-fg: #fafaf7;
+  --cd-border: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #f2f0ea;
+    --paper: #141418;
+    --card: #1e1e24;
+    --line: #32323a;
+    --muted: #a5a5b0;
+    --green-soft: #1e3226;
+    --red-soft: #3a201c;
+    --band-black: #4a4a55;
+    --cd-bg: #1e1e24;
+    --cd-fg: #f2f0ea;
+    --cd-border: #32323a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink: #f2f0ea;
+  --paper: #141418;
+  --card: #1e1e24;
+  --line: #32323a;
+  --muted: #a5a5b0;
+  --green-soft: #1e3226;
+  --red-soft: #3a201c;
+  --band-black: #4a4a55;
+  --cd-bg: #1e1e24;
+  --cd-fg: #f2f0ea;
+  --cd-border: #32323a;
+}
+
+/* Map tokens into Tailwind utility names: bg-card, text-ink, border-line … */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-brand-red: var(--red);
+  --color-brand-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red-soft: var(--red-soft);
+  --color-band-black: var(--band-black);
+  --radius-app: 14px;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* 3D card flip (used by QuestionCard) */
+.flip { perspective: 1400px; }
+.flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.flip.flipped .flip-inner { transform: rotateY(180deg); }
+.flip .face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip .face-back { transform: rotateY(180deg); }
+
+@keyframes shake {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.answer-shake { animation: shake 0.22s ease 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+  .answer-shake { animation: none; }
+}
