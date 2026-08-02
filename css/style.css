@@ -500,6 +500,16 @@ input[type="search"], select, input[type="date"] {
 
 .statebtn:active { border-color: var(--gold); background: var(--paper); }
 
+.onboarding input[type="date"] {
+  max-width: 280px;
+  margin: 0 auto 18px;
+  display: block;
+  text-align: center;
+  font-size: 17px;
+}
+
+.onboarding .btn { max-width: 280px; margin: 0 auto; }
+
 /* ---------------- tab bar */
 
 .tabbar {

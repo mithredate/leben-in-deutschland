@@ -23,7 +23,8 @@ function write(key, value) {
 
 export const store = {
   get settings() {
-    return read(K.settings, { state: null, lang: 'en', examDate: '2026-08-08' });
+    const defaultExam = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    return read(K.settings, { state: null, lang: 'en', examDate: defaultExam });
   },
   set settings(s) {
     write(K.settings, s);

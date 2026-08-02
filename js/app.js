@@ -613,10 +613,28 @@ function showOnboarding() {
   for (const b of $overlay.querySelectorAll('[data-state]')) {
     b.onclick = () => {
       store.patchSettings({ state: b.dataset.state });
-      closeOverlay();
-      render();
+      askExamDate();
     };
   }
+}
+
+function askExamDate() {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = store.settings.examDate;
+  const suggested = current >= today ? current
+    : new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  $overlay.querySelector('.ov-body').innerHTML = `
+    <p class="eyebrow">Fast geschafft</p>
+    <h1>Wann ist deine Prüfung?</h1>
+    <p class="ob-sub">Daraus berechnet die App deinen Countdown und dein Tagespensum. Später änderbar unter „Mehr“.</p>
+    <input type="date" id="ob-date" value="${suggested}" min="${today}">
+    <button class="btn btn-primary btn-big" id="ob-done">Los geht's</button>`;
+  document.getElementById('ob-done').onclick = () => {
+    const val = document.getElementById('ob-date').value;
+    if (val) store.patchSettings({ examDate: val });
+    closeOverlay();
+    render();
+  };
 }
 
 // ---------------------------------------------------------------- overlay + toast plumbing
