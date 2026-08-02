@@ -557,6 +557,13 @@ function renderMore() {
     <label class="field">Prüfungsdatum
       <input type="date" id="s-date" value="${esc(settings.examDate)}">
     </label>
+    <label class="field">Design
+      <select id="s-theme">
+        <option value="auto" ${settings.theme === 'auto' ? 'selected' : ''}>Wie System</option>
+        <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Hell</option>
+        <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dunkel</option>
+      </select>
+    </label>
   </section>
 
   <section class="card">
@@ -607,6 +614,7 @@ function renderMore() {
   document.getElementById('s-state').onchange = (e) => { store.patchSettings({ state: e.target.value }); toast('Bundesland gespeichert'); };
   document.getElementById('s-lang').onchange = (e) => store.patchSettings({ lang: e.target.value });
   document.getElementById('s-date').onchange = (e) => store.patchSettings({ examDate: e.target.value });
+  document.getElementById('s-theme').onchange = (e) => { store.patchSettings({ theme: e.target.value }); applyTheme(); };
 
   document.getElementById('btn-export').onclick = () => {
     const blob = new Blob([store.exportAll()], { type: 'application/json' });
@@ -717,9 +725,25 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ---------------------------------------------------------------- theme
+
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+function applyTheme() {
+  const theme = store.settings.theme;
+  const root = document.documentElement;
+  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  else delete root.dataset.theme;
+  const dark = theme === 'dark' || (theme !== 'light' && darkQuery.matches);
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#141418' : '#fafaf7';
+}
+
+darkQuery.addEventListener('change', applyTheme);
+
 // ---------------------------------------------------------------- boot
 
 async function boot() {
+  applyTheme();
   const res = await fetch('data/questions.json');
   QUESTIONS = await res.json();
   if (!store.settings.state) showOnboarding();

@@ -24,7 +24,7 @@ function write(key, value) {
 export const store = {
   get settings() {
     const defaultExam = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-    return read(K.settings, { state: null, lang: 'en', examDate: defaultExam });
+    return { theme: 'auto', ...read(K.settings, { state: null, lang: 'en', examDate: defaultExam }) };
   },
   set settings(s) {
     write(K.settings, s);

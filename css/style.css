@@ -1,6 +1,9 @@
 /* Leben in Deutschland Testtrainer
    Palette: ink #1a1a1f · paper #fafaf7 · gold #ffcc00 · red #dd3a2a · green #2e7d46 */
 
+/* Theme: light is the base; dark is applied either by system preference
+   (unless the user forced light) or by the user forcing dark via
+   data-theme on <html>. The two dark blocks must stay identical. */
 :root {
   --ink: #1a1a1f;
   --paper: #fafaf7;
@@ -13,12 +16,16 @@
   --green: #2e7d46;
   --green-soft: #e3f0e7;
   --red-soft: #fbe9e6;
+  --band-black: #1a1a1f;
+  --cd-bg: #1a1a1f;
+  --cd-fg: #fafaf7;
+  --cd-border: transparent;
   --radius: 14px;
   --tap: 52px;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ink: #f2f0ea;
     --paper: #141418;
     --card: #1e1e24;
@@ -26,7 +33,25 @@
     --muted: #a5a5b0;
     --green-soft: #1e3226;
     --red-soft: #3a201c;
+    --band-black: #4a4a55;
+    --cd-bg: #1e1e24;
+    --cd-fg: #f2f0ea;
+    --cd-border: #32323a;
   }
+}
+
+:root[data-theme="dark"] {
+  --ink: #f2f0ea;
+  --paper: #141418;
+  --card: #1e1e24;
+  --line: #32323a;
+  --muted: #a5a5b0;
+  --green-soft: #1e3226;
+  --red-soft: #3a201c;
+  --band-black: #4a4a55;
+  --cd-bg: #1e1e24;
+  --cd-fg: #f2f0ea;
+  --cd-border: #32323a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,10 +120,7 @@ h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .band { transition: width 0.6s ease; min-width: 0; }
 .band-gold { background: var(--gold); }
 .band-red { background: var(--red); }
-.band-black { background: #1a1a1f; }
-@media (prefers-color-scheme: dark) {
-  .band-black { background: #4a4a55; }
-}
+.band-black { background: var(--band-black); }
 
 .flaglegend {
   display: flex;
@@ -112,8 +134,7 @@ h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
 .dot-gold { background: var(--gold); }
 .dot-red { background: var(--red); }
-.dot-black { background: #1a1a1f; border: 1px solid var(--line); }
-@media (prefers-color-scheme: dark) { .dot-black { background: #4a4a55; } }
+.dot-black { background: var(--band-black); border: 1px solid var(--line); }
 
 /* ---------------- home */
 
@@ -121,13 +142,9 @@ h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
   display: flex;
   align-items: center;
   gap: 16px;
-  background: var(--ink);
-  color: var(--paper);
-  border: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  .countdown { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+  background: var(--cd-bg);
+  color: var(--cd-fg);
+  border: 1px solid var(--cd-border);
 }
 
 .count-num {
