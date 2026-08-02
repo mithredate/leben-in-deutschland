@@ -140,22 +140,61 @@ function questionCard(container, q, opts = {}) {
   const lang = opts.lang || store.settings.lang;
   const order = isPositional(q) ? [0, 1, 2, 3] : shuffled([0, 1, 2, 3]);
   const en = q.en || {};
+  // flip side exists only when the user wants non-German help and we have any
+  const hasBack = lang !== 'de' && !!(en.question || en.explanation || (en.answers || []).some(Boolean));
 
   container.innerHTML = `
   <article class="qcard">
-    <p class="qnum">Frage ${esc(q.num)} · ${esc(q.category)}</p>
-    <h2 class="qtext">${esc(q.question)}</h2>
-    ${lang === 'en' && en.question ? `<p class="qtrans">${esc(en.question)}</p>` : ''}
-    ${q.image ? `<img class="qimg" src="img/${esc(q.image)}" alt="Abbildung zu Frage ${esc(q.num)}" loading="lazy">` : ''}
-    <div class="answers">
-      ${order.map((i, pos) => `
-        <button class="answer" data-i="${i}">
-          <span class="answer-letter">${'ABCD'[pos]}</span>
-          <span>${esc(q.answers[i])}</span>
-        </button>`).join('')}
+    <div class="qhead">
+      <p class="qnum">Frage ${esc(q.num)} · ${esc(q.category)}</p>
+      ${hasBack ? '<button class="flipbtn" data-flip aria-pressed="false" aria-label="Englische Übersetzung zeigen">EN ⇄</button>' : ''}
+    </div>
+    <div class="flip">
+      <div class="flip-inner">
+        <div class="face face-front">
+          <h2 class="qtext">${esc(q.question)}</h2>
+          ${q.image ? `<img class="qimg" src="img/${esc(q.image)}" alt="Abbildung zu Frage ${esc(q.num)}" loading="lazy">` : ''}
+          <div class="answers">
+            ${order.map((i, pos) => `
+              <button class="answer" data-i="${i}">
+                <span class="answer-letter">${'ABCD'[pos]}</span>
+                <span>${esc(q.answers[i])}</span>
+              </button>`).join('')}
+          </div>
+        </div>
+        ${hasBack ? `
+        <div class="face face-back" aria-hidden="true">
+          <p class="qnum">English</p>
+          <h2 class="qtext">${esc(en.question || q.question)}</h2>
+          <div class="answers">
+            ${order.map((i, pos) => `
+              <div class="answer answer-static">
+                <span class="answer-letter">${'ABCD'[pos]}</span>
+                <span>${esc((en.answers || [])[i] || q.answers[i])}</span>
+              </div>`).join('')}
+          </div>
+          ${en.explanation ? `<p class="back-expl">${esc(en.explanation)}</p>` : ''}
+          <button class="btn btn-ghost" data-flip>← Zurück zur Frage</button>
+        </div>` : ''}
+      </div>
     </div>
     <div class="feedback hidden"></div>
   </article>`;
+
+  if (hasBack) {
+    const $flip = container.querySelector('.flip');
+    const $front = container.querySelector('.face-front');
+    const $back = container.querySelector('.face-back');
+    const $chip = container.querySelector('.flipbtn');
+    for (const fb of container.querySelectorAll('[data-flip]')) {
+      fb.onclick = () => {
+        const flipped = $flip.classList.toggle('flipped');
+        $front.setAttribute('aria-hidden', flipped);
+        $back.setAttribute('aria-hidden', !flipped);
+        $chip.setAttribute('aria-pressed', flipped);
+      };
+    }
+  }
 
   const $answers = container.querySelectorAll('.answer');
   const $feedback = container.querySelector('.feedback');

@@ -199,9 +199,67 @@ h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
   margin-bottom: 8px;
 }
 
-.qtext { font-size: 20px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+.qhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
 
-.qtrans { color: var(--muted); font-size: 14.5px; margin-bottom: 8px; }
+.qhead .qnum { margin-bottom: 0; }
+
+.flipbtn {
+  flex-shrink: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: var(--card);
+}
+
+.flipbtn[aria-pressed="true"] { border-color: var(--gold); color: var(--ink); }
+
+/* 3D card flip: faces stacked in one grid cell so height = tallest face */
+.flip { perspective: 1400px; }
+
+.flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.flip.flipped .flip-inner { transform: rotateY(180deg); }
+
+.face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.face-back { transform: rotateY(180deg); }
+
+.answer-static { pointer-events: none; }
+
+.back-expl {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--muted);
+  margin: 12px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+}
+
+.qtext { font-size: 20px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
 
 .qimg {
   width: 100%;
