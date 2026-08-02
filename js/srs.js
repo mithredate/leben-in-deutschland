@@ -32,24 +32,44 @@ export function gradeAnswer(entry, correct, now = Date.now()) {
   return e;
 }
 
+// One learning round. Every round uses the same algorithm; you simply do as
+// many rounds as your time allows.
+export const ROUND_SIZE = 30;
+
 export function queueFor(questions, progress, now = Date.now()) {
   const due = [];
   const fresh = [];
   for (const q of questions) {
     const e = progress[q.id];
     if (!e || e.seen === 0) fresh.push(q);
-    else if (e.box < 5 && e.due <= now) due.push([e.due, q]);
+    else if (e.box < 5 && e.due <= now) due.push(q);
   }
-  // overdue first (oldest due date first), then new questions in catalog order
-  due.sort((a, b) => a[0] - b[0]);
-  return { due: due.map(([, q]) => q), fresh };
+  // Weakest first ("successive relearning" ordering): lower box beats higher,
+  // more lapses beat fewer, then whatever has waited longest. New questions
+  // fill the rest of the round in catalog order.
+  due.sort((a, b) => {
+    const ea = progress[a.id], eb = progress[b.id];
+    return (ea.box - eb.box) || (eb.wrong - ea.wrong) || (ea.due - eb.due);
+  });
+  return { due, fresh };
 }
 
-export function buildSession(questions, progress, size = 20, now = Date.now()) {
+export function buildSession(questions, progress, size = ROUND_SIZE, now = Date.now()) {
   const { due, fresh } = queueFor(questions, progress, now);
   const session = due.slice(0, size);
   if (session.length < size) session.push(...fresh.slice(0, size - session.length));
   return session;
+}
+
+// In-round relearning step: a missed question comes back a few cards later in
+// the SAME round, until it is answered correctly once. Retrieval practice on
+// the spot beats seeing the solution and moving on.
+export const REQUEUE_GAP = 5;
+
+// A "leech" keeps failing despite repetition — it needs conscious attention,
+// not more mechanical reps.
+export function isLeech(entry) {
+  return !!entry && entry.wrong >= 4;
 }
 
 export function summarize(questions, progress) {

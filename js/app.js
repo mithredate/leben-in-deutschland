@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import { gradeAnswer, queueFor, buildSession, summarize, dueCount, dailyTarget } from './srs.js';
+import { gradeAnswer, buildSession, summarize, dueCount, dailyTarget, ROUND_SIZE, REQUEUE_GAP, isLeech } from './srs.js';
 
 const STATES = {
   BW: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg',
@@ -122,7 +122,7 @@ function renderHome() {
   </section>
 
   <button class="btn btn-primary btn-big" id="btn-study">
-    ${due > 0 ? `Wiederholen &amp; Lernen (${Math.min(20, due + s.new)})` : s.new > 0 ? 'Neue Fragen lernen' : 'Alles gemeistert – Fehler wiederholen'}
+    ${due > 0 ? `Runde starten (${Math.min(ROUND_SIZE, due + s.new)} Fragen)` : s.new > 0 ? 'Neue Fragen lernen' : 'Alles gemeistert – Fehler wiederholen'}
   </button>
   <button class="btn btn-ghost" id="btn-exam">Testsimulation starten</button>
 
@@ -232,13 +232,16 @@ function questionCard(container, q, opts = {}) {
 
 function startStudy(list) {
   const progress = store.progress;
-  const session = list || buildSession(pool(), progress, 20);
-  if (!session.length) {
+  const initial = list || buildSession(pool(), progress);
+  if (!initial.length) {
     toast('Nichts fällig – alles gelernt! 🎉');
     return;
   }
+  // queue grows when a question is missed: it comes back a few cards later
+  const queue = [...initial];
   let idx = 0;
   let right = 0;
+  let answered = 0;
 
   openOverlay(`
     <div class="ov-head">
@@ -256,18 +259,26 @@ function startStudy(list) {
   const $count = $overlay.querySelector('.ov-count');
 
   function show() {
-    if (idx >= session.length) return finish();
-    $fill.style.width = `${(100 * idx) / session.length}%`;
-    $count.textContent = `${idx + 1}/${session.length}`;
+    if (idx >= queue.length) return finish();
+    $fill.style.width = `${(100 * idx) / queue.length}%`;
+    $count.textContent = `${idx + 1}/${queue.length}`;
     $foot.classList.add('hidden');
-    questionCard($body, session[idx], {
+    const q = queue[idx];
+    questionCard($body, q, {
       mode: 'study',
       onAnswer(correct) {
         const p = store.progress;
-        p[session[idx].id] = gradeAnswer(p[session[idx].id], correct);
+        p[q.id] = gradeAnswer(p[q.id], correct);
         store.progress = p;
-        store.recordAnswer(session[idx].id, correct);
-        if (correct) right += 1;
+        store.recordAnswer(q.id, correct);
+        answered += 1;
+        if (correct) {
+          right += 1;
+        } else {
+          // successive relearning: same question again a few cards later,
+          // until it is retrieved correctly once in this round
+          queue.splice(Math.min(idx + 1 + REQUEUE_GAP, queue.length), 0, q);
+        }
         $foot.classList.remove('hidden');
       },
     });
@@ -275,10 +286,11 @@ function startStudy(list) {
   }
 
   function finish() {
+    const pct = answered ? right / answered : 1;
     $body.innerHTML = `
       <div class="finish">
-        <div class="finish-num">${right}/${session.length}</div>
-        <p>${right === session.length ? 'Perfekte Runde!' : right >= session.length * 0.7 ? 'Gut gemacht – weiter so.' : 'Die Fehler kommen gleich wieder dran.'}</p>
+        <div class="finish-num">${right}/${answered}</div>
+        <p>${pct === 1 ? 'Perfekte Runde!' : pct >= 0.7 ? 'Gut gemacht – weiter so.' : 'Schwere Fragen kommen in der nächsten Runde zuerst.'}</p>
         <button class="btn btn-primary btn-big" data-again>Nächste Runde</button>
         <button class="btn btn-ghost" data-close>Fertig für jetzt</button>
       </div>`;
@@ -475,6 +487,7 @@ function renderBrowse() {
     if (browseFilter.status === 'neu' && e && e.seen > 0) return false;
     if (browseFilter.status === 'fehler' && (!e || e.box !== 1)) return false;
     if (browseFilter.status === 'sicher' && (!e || e.box < 5)) return false;
+    if (browseFilter.status === 'leech' && !isLeech(e)) return false;
     if (browseFilter.text) {
       const t = browseFilter.text.toLowerCase();
       if (!q.question.toLowerCase().includes(t) && !q.num.toLowerCase().includes(t)
@@ -499,6 +512,7 @@ function renderBrowse() {
         <option value="alle">Jeder Status</option>
         <option value="neu" ${browseFilter.status === 'neu' ? 'selected' : ''}>Neu</option>
         <option value="fehler" ${browseFilter.status === 'fehler' ? 'selected' : ''}>Fehler</option>
+        <option value="leech" ${browseFilter.status === 'leech' ? 'selected' : ''}>Hartnäckig 🔥</option>
         <option value="sicher" ${browseFilter.status === 'sicher' ? 'selected' : ''}>Sicher</option>
       </select>
     </div>
@@ -510,7 +524,7 @@ function renderBrowse() {
       const cls = !e || e.seen === 0 ? 'st-new' : e.box >= 5 ? 'st-done' : e.box === 1 ? 'st-wrong' : 'st-learn';
       return `<li class="qrow" data-id="${q.id}">
         <span class="qrow-dot ${cls}"></span>
-        <span class="qrow-num">${esc(q.num)}</span>
+        <span class="qrow-num">${esc(q.num)}${isLeech(e) ? ' 🔥' : ''}</span>
         <span class="qrow-text">${esc(q.question)}</span>
       </li>`;
     }).join('')}
