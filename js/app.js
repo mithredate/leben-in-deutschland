@@ -596,6 +596,8 @@ function renderMore() {
 
   <section class="card">
     <h2>Daten</h2>
+    <p class="storage-status" id="storage-status">Speicherstatus wird geprüft …</p>
+    <p class="storage-hint">Hinweis (iOS): Safari und die installierte Home-Bildschirm-App haben <b>getrennte Speicher</b>. Beim Wechsel Fortschritt hier exportieren und dort importieren.</p>
     <div class="btnrow">
       <button class="btn btn-ghost" id="btn-export">Fortschritt exportieren</button>
       <button class="btn btn-ghost" id="btn-import">Importieren</button>
@@ -615,6 +617,17 @@ function renderMore() {
   document.getElementById('s-lang').onchange = (e) => store.patchSettings({ lang: e.target.value });
   document.getElementById('s-date').onchange = (e) => store.patchSettings({ examDate: e.target.value });
   document.getElementById('s-theme').onchange = (e) => { store.patchSettings({ theme: e.target.value }); applyTheme(); };
+
+  store.storageHealth().then(({ seen, persisted, lastSaved }) => {
+    const el = document.getElementById('storage-status');
+    if (!el) return;
+    const when = lastSaved
+      ? new Date(lastSaved).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : '–';
+    el.innerHTML = `💾 <b>${seen}</b> Frage${seen === 1 ? '' : 'n'} gespeichert · zuletzt: ${when}`
+      + (persisted === false ? ' · <span class="bad">Speicher nicht dauerhaft geschützt</span>' : '')
+      + (persisted === true ? ' · dauerhaft geschützt ✓' : '');
+  });
 
   document.getElementById('btn-export').onclick = () => {
     const blob = new Blob([store.exportAll()], { type: 'application/json' });
@@ -744,6 +757,11 @@ darkQuery.addEventListener('change', applyTheme);
 
 async function boot() {
   applyTheme();
+  store.onWriteError = () => toast('⚠️ Speichern fehlgeschlagen – Privatmodus aktiv?');
+  // ask the browser not to evict our data under storage pressure
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
   const res = await fetch('data/questions.json');
   QUESTIONS = await res.json();
   if (!store.settings.state) showOnboarding();

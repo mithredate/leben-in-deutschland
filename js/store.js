@@ -17,8 +17,17 @@ function read(key, fallback) {
   }
 }
 
+// Private-browsing tabs and full quotas make setItem throw — never lose an
+// answer silently; the app shows a warning via onWriteError instead.
+let writeErrorHandler = null;
+
 function write(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem('lid.lastSaved.v1', JSON.stringify(Date.now()));
+  } catch (e) {
+    if (writeErrorHandler) writeErrorHandler(e);
+  }
 }
 
 export const store = {
@@ -116,5 +125,24 @@ export const store = {
     localStorage.removeItem(K.progress);
     localStorage.removeItem(K.stats);
     localStorage.removeItem(K.exams);
+  },
+
+  set onWriteError(fn) {
+    writeErrorHandler = fn;
+  },
+
+  get lastSaved() {
+    return read('lid.lastSaved.v1', null);
+  },
+
+  async storageHealth() {
+    const seen = Object.values(this.progress).filter((e) => e.seen > 0).length;
+    let persisted = null;
+    try {
+      if (navigator.storage && navigator.storage.persisted) {
+        persisted = await navigator.storage.persisted();
+      }
+    } catch { /* not supported */ }
+    return { seen, persisted, lastSaved: this.lastSaved };
   },
 };

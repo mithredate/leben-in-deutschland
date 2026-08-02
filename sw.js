@@ -1,7 +1,7 @@
 // Cache-first service worker: after the first visit the app is fully usable
 // offline (questions, images, everything). Bump VERSION on any deploy to
 // invalidate old caches.
-const VERSION = 'lid-v4';
+const VERSION = 'lid-v5';
 
 const CORE = [
   './',
