@@ -19,6 +19,11 @@ const progress = computed(() => {
   return store.getProgress()
 })
 
+const marked = computed(() => {
+  void rev.value
+  return store.getMarked()
+})
+
 const rows = computed(() => pool.value.filter((q) => {
   if (cat.value !== 'alle' && q.category !== cat.value) return false
   const e = progress.value[q.id]
@@ -26,6 +31,7 @@ const rows = computed(() => pool.value.filter((q) => {
   if (status.value === 'fehler' && (!e || e.box !== 1)) return false
   if (status.value === 'sicher' && (!e || e.box < 5)) return false
   if (status.value === 'leech' && !isLeech(e)) return false
+  if (status.value === 'markiert' && !marked.value.has(q.id)) return false
   if (text.value) {
     const t = text.value.toLowerCase()
     if (!q.question.toLowerCase().includes(t) && !q.num.toLowerCase().includes(t)
@@ -72,6 +78,7 @@ const inputCls = 'min-h-[46px] w-full appearance-none rounded-xl border-[1.5px] 
           <option value="alle">Jeder Status</option>
           <option value="neu">Neu</option>
           <option value="fehler">Fehler</option>
+          <option value="markiert">Markiert ★</option>
           <option value="leech">Hartnäckig 🔥</option>
           <option value="sicher">Sicher</option>
         </select>
@@ -93,7 +100,7 @@ const inputCls = 'min-h-[46px] w-full appearance-none rounded-xl border-[1.5px] 
         @click="emit('practice', [q])"
       >
         <span class="size-2.5 shrink-0 rounded-full" :class="dotClass(q)" />
-        <span class="w-11 shrink-0 text-xs font-bold text-muted">{{ q.num }}{{ isLeech(progress[q.id]) ? ' 🔥' : '' }}</span>
+        <span class="w-11 shrink-0 text-xs font-bold text-muted">{{ q.num }}{{ marked.has(q.id) ? ' ★' : '' }}{{ isLeech(progress[q.id]) ? ' 🔥' : '' }}</span>
         <span class="line-clamp-2 text-sm">{{ q.question }}</span>
       </li>
     </ul>

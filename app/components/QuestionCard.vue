@@ -25,17 +25,27 @@ function shuffled<T>(arr: T[]): T[] {
   return a
 }
 
+const { store } = useApp()
+const toast = useToast()
+
 const order = ref<number[]>([])
 const answered = ref<number | null>(null)
 const flipped = ref(false)
 const showAlt = ref(false)
+const marked = ref(false)
 
 watch(() => props.q, () => {
   order.value = isPositional.value ? [0, 1, 2, 3] : shuffled([0, 1, 2, 3])
   answered.value = null
   flipped.value = false
   showAlt.value = false
+  marked.value = store.getMarked().has(props.q.id)
 }, { immediate: true })
+
+function toggleMark() {
+  marked.value = store.toggleMarked(props.q.id)
+  toast.show(marked.value ? '★ Als schwierig markiert' : 'Markierung entfernt')
+}
 
 const en = computed(() => props.q.en || { question: null, answers: [], explanation: null })
 const hasBack = computed(() =>
@@ -81,16 +91,28 @@ function answerClass(i: number) {
       <p class="text-xs font-bold uppercase tracking-widest text-muted">
         {{ label || `Frage ${q.num} · ${q.category}` }}
       </p>
-      <button
-        v-if="hasBack"
-        class="shrink-0 rounded-full border-[1.5px] px-3 py-1 text-xs font-extrabold tracking-wide"
-        :class="flipped ? 'border-gold text-ink' : 'border-line text-muted'"
-        :aria-pressed="flipped"
-        aria-label="Englische Übersetzung zeigen"
-        @click="flipped = !flipped"
-      >
-        EN ⇄
-      </button>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <button
+          v-if="mode === 'study'"
+          class="rounded-full border-[1.5px] px-2.5 py-1 text-sm leading-none"
+          :class="marked ? 'border-gold text-gold' : 'border-line text-muted'"
+          :aria-pressed="marked"
+          aria-label="Als schwierig markieren"
+          @click="toggleMark"
+        >
+          {{ marked ? '★' : '☆' }}
+        </button>
+        <button
+          v-if="hasBack"
+          class="rounded-full border-[1.5px] px-3 py-1 text-xs font-extrabold tracking-wide"
+          :class="flipped ? 'border-gold text-ink' : 'border-line text-muted'"
+          :aria-pressed="flipped"
+          aria-label="Englische Übersetzung zeigen"
+          @click="flipped = !flipped"
+        >
+          EN ⇄
+        </button>
+      </div>
     </div>
 
     <div class="flip" :class="{ flipped }">

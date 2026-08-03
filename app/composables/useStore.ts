@@ -30,6 +30,7 @@ const K = {
   progress: 'lid.progress.v1',
   stats: 'lid.stats.v1',
   exams: 'lid.exams.v1',
+  marked: 'lid.marked.v1',
   lastSaved: 'lid.lastSaved.v1',
 }
 
@@ -70,6 +71,17 @@ export const useStore = () => {
 
   const getExams = () => read<ExamRecord[]>(K.exams, [])
   const addExam = (e: ExamRecord) => write(K.exams, [...getExams(), e])
+
+  // manually bookmarked ("difficult") questions
+  const getMarked = () => new Set(read<string[]>(K.marked, []))
+  function toggleMarked(id: string): boolean {
+    const s = getMarked()
+    const nowMarked = !s.has(id)
+    if (nowMarked) s.add(id)
+    else s.delete(id)
+    write(K.marked, [...s])
+    return nowMarked
+  }
 
   function recordAnswer(correct: boolean, now = Date.now()) {
     const day = new Date(now).toISOString().slice(0, 10)
@@ -114,6 +126,7 @@ export const useStore = () => {
       progress: getProgress(),
       stats: getStats(),
       exams: getExams(),
+      marked: [...getMarked()],
     })
   }
 
@@ -124,12 +137,14 @@ export const useStore = () => {
     if (data.progress) write(K.progress, data.progress)
     if (data.stats) write(K.stats, data.stats)
     if (data.exams) write(K.exams, data.exams)
+    if (data.marked) write(K.marked, data.marked)
   }
 
   function resetProgress() {
     localStorage.removeItem(K.progress)
     localStorage.removeItem(K.stats)
     localStorage.removeItem(K.exams)
+    localStorage.removeItem(K.marked)
   }
 
   async function storageHealth() {
@@ -143,7 +158,8 @@ export const useStore = () => {
 
   return {
     getSettings, patchSettings, getProgress, setProgress,
-    getExams, addExam, recordAnswer, answeredToday, streak,
+    getExams, addExam, getMarked, toggleMarked,
+    recordAnswer, answeredToday, streak,
     exportAll, importAll, resetProgress, storageHealth,
   }
 }
