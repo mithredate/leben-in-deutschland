@@ -52,13 +52,19 @@ function pick(i: number) {
   if (idx.value < qs.value.length - 1) idx.value += 1
 }
 
+const isEn = computed(() => settings.value.lang === 'en')
+const t = (de: string, en: string) => (isEn.value ? en : de)
+
 function tryClose() {
-  if (result.value || confirm('Simulation wirklich abbrechen?')) emit('close')
+  if (result.value || confirm(t('Simulation wirklich abbrechen?', 'Really cancel the simulation?'))) emit('close')
 }
 
 function trySubmit() {
   const open = picked.value.filter((p) => p == null).length
-  if (open && !confirm(`${open} Frage${open === 1 ? '' : 'n'} unbeantwortet. Trotzdem abgeben?`)) return
+  const msg = isEn.value
+    ? `${open} question${open === 1 ? '' : 's'} unanswered. Submit anyway?`
+    : `${open} Frage${open === 1 ? '' : 'n'} unbeantwortet. Trotzdem abgeben?`
+  if (open && !confirm(msg)) return
   submit()
 }
 
@@ -85,7 +91,11 @@ function submit() {
 }
 
 const explFor = (q: Question) =>
-  settings.value.lang === 'en' ? q.en?.explanation : (q.explanation_de || q.en?.explanation)
+  isEn.value ? (q.en?.explanation || q.explanation_de) : (q.explanation_de || q.en?.explanation)
+
+// inline translations on the feedback page, shown by default when lang is English
+const qEn = (q: Question) => (isEn.value ? q.en?.question : null)
+const aEn = (q: Question, i: number | null) => (isEn.value && i != null ? q.en?.answers?.[i] : null)
 </script>
 
 <template>
@@ -140,25 +150,26 @@ const explFor = (q: Question) =>
 
     <div v-else class="mx-auto w-full max-w-[620px] flex-1 overflow-y-auto px-4 pb-8">
       <div class="px-2 py-8 text-center">
-        <p class="text-xs font-bold uppercase tracking-widest text-muted">Ergebnis</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-muted">{{ t('Ergebnis', 'Result') }}</p>
         <div class="mb-2.5 text-[64px] font-extrabold leading-tight tabular-nums" :class="result.score >= PASS.lid ? 'text-brand-green' : 'text-brand-red'">
           {{ result.score }}/33
         </div>
         <div class="mb-5 grid grid-cols-2 gap-2.5 text-[13.5px]">
           <div class="rounded-[10px] p-2.5" :class="result.score >= PASS.lid ? 'bg-green-soft text-brand-green' : 'bg-red-soft text-brand-red'">
-            Leben in Deutschland (NE)<br><b>{{ result.score >= PASS.lid ? 'bestanden ✓' : 'nicht bestanden ✗' }}</b>
+            Leben in Deutschland (NE)<br><b>{{ result.score >= PASS.lid ? t('bestanden ✓', 'passed ✓') : t('nicht bestanden ✗', 'not passed ✗') }}</b>
           </div>
           <div class="rounded-[10px] p-2.5" :class="result.score >= PASS.einbuergerung ? 'bg-green-soft text-brand-green' : 'bg-red-soft text-brand-red'">
-            Einbürgerung<br><b>{{ result.score >= PASS.einbuergerung ? 'bestanden ✓' : 'nicht bestanden ✗' }}</b>
+            {{ t('Einbürgerung', 'Naturalization') }}<br><b>{{ result.score >= PASS.einbuergerung ? t('bestanden ✓', 'passed ✓') : t('nicht bestanden ✗', 'not passed ✗') }}</b>
           </div>
         </div>
 
         <template v-if="result.wrong.length">
-          <h3 class="mb-2.5 text-left font-bold">Falsche Antworten ({{ result.wrong.length }})</h3>
+          <h3 class="mb-2.5 text-left font-bold">{{ t('Falsche Antworten', 'Wrong answers') }} ({{ result.wrong.length }})</h3>
           <div class="mb-4 grid gap-3 text-left">
             <div v-for="w in result.wrong" :key="w.q.id" class="rounded-app border border-line bg-card p-3 text-[14.5px]">
-              <p class="mb-1.5 text-xs font-bold uppercase tracking-widest text-muted">Frage {{ w.q.num }}</p>
-              <p class="mb-1.5 font-bold">{{ w.q.question }}</p>
+              <p class="mb-1.5 text-xs font-bold uppercase tracking-widest text-muted">{{ t('Frage', 'Question') }} {{ w.q.num }}</p>
+              <p class="font-bold" :class="qEn(w.q) ? 'mb-0.5' : 'mb-1.5'">{{ w.q.question }}</p>
+              <p v-if="qEn(w.q)" class="mb-1.5 text-muted">{{ qEn(w.q) }}</p>
               <img
                 v-if="w.q.image"
                 class="my-2 w-full max-w-[300px] rounded-[10px] border border-line bg-white"
@@ -166,10 +177,16 @@ const explFor = (q: Question) =>
                 alt=""
                 loading="lazy"
               >
-              <p class="mb-0.5 text-brand-red">Deine Antwort: {{ w.picked != null ? w.q.answers[w.picked] : '–' }}</p>
-              <p class="mb-0.5 text-brand-green">Richtig: {{ w.q.answers[w.q.correct] }}</p>
+              <p class="mb-0.5 text-brand-red">
+                {{ t('Deine Antwort', 'Your answer') }}: {{ w.picked != null ? w.q.answers[w.picked] : '–' }}
+                <span v-if="aEn(w.q, w.picked)" class="opacity-75">· {{ aEn(w.q, w.picked) }}</span>
+              </p>
+              <p class="mb-0.5 text-brand-green">
+                {{ t('Richtig', 'Correct') }}: {{ w.q.answers[w.q.correct] }}
+                <span v-if="aEn(w.q, w.q.correct)" class="opacity-75">· {{ aEn(w.q, w.q.correct) }}</span>
+              </p>
               <details v-if="explFor(w.q)" class="mt-1.5 rounded-[10px] border border-line bg-paper px-3 py-2.5 text-sm">
-                <summary class="cursor-pointer font-bold">Erklärung</summary>
+                <summary class="cursor-pointer font-bold">{{ t('Erklärung', 'Explanation') }}</summary>
                 <p class="mt-2 text-muted">{{ explFor(w.q) }}</p>
                 <SourceLine :q="w.q" />
               </details>
@@ -179,12 +196,12 @@ const explFor = (q: Question) =>
             class="mb-2.5 block min-h-[52px] w-full rounded-app bg-gold px-4 py-3 font-bold text-gold-ink"
             @click="emit('drill', result.wrong.map((w) => w.q))"
           >
-            Fehler jetzt üben ({{ result.wrong.length }})
+            {{ t('Fehler jetzt üben', 'Practice mistakes now') }} ({{ result.wrong.length }})
           </button>
         </template>
 
         <button class="block min-h-[52px] w-full rounded-app border-[1.5px] border-line px-4 py-3 font-bold" @click="emit('close')">
-          Schließen
+          {{ t('Schließen', 'Close') }}
         </button>
       </div>
     </div>
