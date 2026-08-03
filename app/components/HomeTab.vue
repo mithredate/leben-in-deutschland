@@ -29,8 +29,7 @@ const examDateLabel = computed(() =>
 
 const studyLabel = computed(() => {
   const { due, s } = data.value
-  if (due > 0) return `Runde starten (${Math.min(ROUND_SIZE, due + s.new)} Fragen)`
-  if (s.new > 0) return 'Neue Fragen lernen'
+  if (due + s.new > 0) return `Runde starten (${Math.min(ROUND_SIZE, due + s.new)} Fragen)`
   return 'Alles gemeistert – Fehler wiederholen'
 })
 </script>

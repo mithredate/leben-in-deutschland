@@ -53,10 +53,14 @@ export function queueFor(questions: Question[], progress: Record<string, Progres
   return { due, fresh }
 }
 
+// Coverage first: every question should be SEEN once before review time is
+// spent — unseen questions fill the round first, due reviews (weakest first)
+// fill whatever room is left. Missed questions still repeat within the round,
+// and once the catalog is exhausted rounds become pure weakest-first review.
 export function buildSession(questions: Question[], progress: Record<string, ProgressEntry>, size = ROUND_SIZE, now = Date.now()) {
   const { due, fresh } = queueFor(questions, progress, now)
-  const session = due.slice(0, size)
-  if (session.length < size) session.push(...fresh.slice(0, size - session.length))
+  const session = fresh.slice(0, size)
+  if (session.length < size) session.push(...due.slice(0, size - session.length))
   return session
 }
 
