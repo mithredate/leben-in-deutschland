@@ -133,6 +133,7 @@ function answerClass(i: number) {
               class="flex min-h-[52px] items-center gap-3 rounded-app border-[1.5px] px-3.5 py-3 text-left text-[15.5px] transition-colors"
               :class="answerClass(i)"
               :disabled="mode === 'study' && answered !== null"
+              :tabindex="flipped ? -1 : undefined"
               @click="choose(i)"
             >
               <span class="letter grid size-7 shrink-0 place-items-center rounded-lg border border-line bg-paper text-[13px] font-bold">
@@ -147,16 +148,20 @@ function answerClass(i: number) {
           <p class="mb-2 text-xs font-bold uppercase tracking-widest text-muted">English</p>
           <h2 class="mb-1.5 text-xl font-bold leading-snug">{{ en.question || q.question }}</h2>
           <div class="mt-3.5 grid gap-2.5">
-            <div
+            <button
               v-for="(i, pos) in order"
               :key="i"
-              class="pointer-events-none flex min-h-[52px] items-center gap-3 rounded-app border-[1.5px] border-line bg-card px-3.5 py-3 text-left text-[15.5px]"
+              class="flex min-h-[52px] items-center gap-3 rounded-app border-[1.5px] px-3.5 py-3 text-left text-[15.5px] transition-colors"
+              :class="answerClass(i)"
+              :disabled="mode === 'study' && answered !== null"
+              :tabindex="flipped ? undefined : -1"
+              @click="choose(i)"
             >
-              <span class="grid size-7 shrink-0 place-items-center rounded-lg border border-line bg-paper text-[13px] font-bold">
+              <span class="letter grid size-7 shrink-0 place-items-center rounded-lg border border-line bg-paper text-[13px] font-bold">
                 {{ 'ABCD'[pos] }}
               </span>
               <span>{{ (en.answers || [])[i] || q.answers[i] }}</span>
-            </div>
+            </button>
           </div>
           <p v-if="en.explanation" class="my-3 rounded-[10px] border border-line bg-paper px-3 py-2.5 text-sm text-muted">
             {{ en.explanation }}
