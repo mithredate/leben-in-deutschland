@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { useQuestions, type Question } from '~/composables/useQuestions'
+import { gloss } from '~/utils/glossary'
 
 const props = defineProps<{
   q: Question
   mode: 'study' | 'exam'
   picked?: number | null
   label?: string
+  // study mode: pass to lift answer state into the parent (enables revisiting
+  // an already-answered card with its feedback intact); omit for local state
+  answered?: number | null
 }>()
 
-const emit = defineEmits<{ answer: [correct: boolean]; pick: [index: number] }>()
+const emit = defineEmits<{ answer: [correct: boolean, picked: number]; pick: [index: number] }>()
 
 const { settings } = useApp()
 const { imgUrl } = useQuestions()
@@ -29,14 +33,16 @@ const { store } = useApp()
 const toast = useToast()
 
 const order = ref<number[]>([])
-const answered = ref<number | null>(null)
+const localAnswered = ref<number | null>(null)
+// controlled (parent-owned) when the `answered` prop is present
+const answered = computed(() => (props.answered !== undefined ? props.answered : localAnswered.value))
 const flipped = ref(false)
 const showAlt = ref(false)
 const marked = ref(false)
 
 watch(() => props.q, () => {
   order.value = isPositional.value ? [0, 1, 2, 3] : shuffled([0, 1, 2, 3])
-  answered.value = null
+  localAnswered.value = null
   flipped.value = false
   showAlt.value = false
   marked.value = store.getMarked().has(props.q.id)
@@ -68,8 +74,8 @@ function choose(i: number) {
     return
   }
   if (answered.value !== null) return
-  answered.value = i
-  emit('answer', i === props.q.correct)
+  if (props.answered === undefined) localAnswered.value = i
+  emit('answer', i === props.q.correct, i)
 }
 
 function answerClass(i: number) {
@@ -146,7 +152,7 @@ function answerClass(i: number) {
 
         <div v-if="hasBack" class="face face-back" :aria-hidden="!flipped">
           <p class="mb-2 text-xs font-bold uppercase tracking-widest text-muted">English</p>
-          <h2 class="mb-1.5 text-xl font-bold leading-snug">{{ en.question || q.question }}</h2>
+          <h2 class="mb-1.5 text-xl font-bold leading-snug">{{ gloss(en.question || q.question) }}</h2>
           <div class="mt-3.5 grid gap-2.5">
             <button
               v-for="(i, pos) in order"
@@ -160,7 +166,7 @@ function answerClass(i: number) {
               <span class="letter grid size-7 shrink-0 place-items-center rounded-lg border border-line bg-paper text-[13px] font-bold">
                 {{ 'ABCD'[pos] }}
               </span>
-              <span>{{ (en.answers || [])[i] || q.answers[i] }}</span>
+              <span>{{ gloss((en.answers || [])[i] || q.answers[i]) }}</span>
             </button>
           </div>
           <p v-if="en.explanation" class="my-3 rounded-[10px] border border-line bg-paper px-3 py-2.5 text-sm text-muted">

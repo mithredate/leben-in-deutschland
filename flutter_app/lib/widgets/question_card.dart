@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../glossary.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'source_line.dart';
@@ -19,14 +20,21 @@ class QuestionCard extends StatefulWidget {
     this.label,
     this.onAnswer,
     this.onPick,
+    this.controlled = false,
+    this.answered,
   });
 
   final Question q;
   final String mode;
   final int? picked;
   final String? label;
-  final void Function(bool correct)? onAnswer;
+  final void Function(bool correct, int picked)? onAnswer;
   final void Function(int index)? onPick;
+
+  /// study mode: when [controlled] is true the parent owns the answer state
+  /// via [answered] (enables revisiting an answered card with feedback intact)
+  final bool controlled;
+  final int? answered;
 
   @override
   State<QuestionCard> createState() => _QuestionCardState();
@@ -34,7 +42,8 @@ class QuestionCard extends StatefulWidget {
 
 class _QuestionCardState extends State<QuestionCard> {
   late List<int> order;
-  int? answered;
+  int? localAnswered;
+  int? get answered => widget.controlled ? widget.answered : localAnswered;
   bool flipped = false;
   bool showAlt = false;
   bool marked = false;
@@ -57,7 +66,7 @@ class _QuestionCardState extends State<QuestionCard> {
 
   void _resetFor(Question q) {
     order = isPositional ? [0, 1, 2, 3] : ([0, 1, 2, 3]..shuffle(Random()));
-    answered = null;
+    localAnswered = null;
     flipped = false;
     showAlt = false;
     marked = AppState.I.store.getMarked().contains(q.id);
@@ -91,8 +100,8 @@ class _QuestionCardState extends State<QuestionCard> {
       return;
     }
     if (answered != null) return;
-    setState(() => answered = i);
-    widget.onAnswer?.call(i == widget.q.correct);
+    if (!widget.controlled) setState(() => localAnswered = i);
+    widget.onAnswer?.call(i == widget.q.correct, i);
   }
 
   @override
@@ -186,12 +195,12 @@ class _QuestionCardState extends State<QuestionCard> {
               style: TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.4, color: c.muted)),
           const SizedBox(height: 6),
-          Text(en.question ?? q.question,
+          Text(gloss(en.question ?? q.question),
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.35)),
           const SizedBox(height: 14),
           for (final (pos, i) in order.indexed) ...[
             _answerButton(c, q, i, pos,
-                text: (i < en.answers.length ? en.answers[i] : null) ?? q.answers[i]),
+                text: gloss((i < en.answers.length ? en.answers[i] : null) ?? q.answers[i])),
             const SizedBox(height: 10),
           ],
           if (en.explanation != null)
