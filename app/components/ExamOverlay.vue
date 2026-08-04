@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQuestions, PASS, type Question } from '~/composables/useQuestions'
 import { gradeAnswer } from '~/composables/useSrs'
+import { gloss } from '~/utils/glossary'
 
 const emit = defineEmits<{ close: []; drill: [qs: Question[]] }>()
 
@@ -94,8 +95,11 @@ const explFor = (q: Question) =>
   isEn.value ? (q.en?.explanation || q.explanation_de) : (q.explanation_de || q.en?.explanation)
 
 // inline translations on the feedback page, shown by default when lang is English
-const qEn = (q: Question) => (isEn.value ? q.en?.question : null)
-const aEn = (q: Question, i: number | null) => (isEn.value && i != null ? q.en?.answers?.[i] : null)
+const qEn = (q: Question) => (isEn.value && q.en?.question ? gloss(q.en.question) : null)
+const aEn = (q: Question, i: number | null) => {
+  const a = isEn.value && i != null ? q.en?.answers?.[i] : null
+  return a ? gloss(a) : null
+}
 </script>
 
 <template>
