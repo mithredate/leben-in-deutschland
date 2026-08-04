@@ -20,8 +20,25 @@ const H = 3600 * 1000
 
 // One learning round; same algorithm every round, do as many as time allows.
 export const ROUND_SIZE = 30
-// A missed question comes back this many cards later in the same round.
+// A missed question comes back at least this many cards later in the same
+// round, at a random position after that.
 export const REQUEUE_GAP = 5
+
+// Fisher–Yates; rng injectable so tests can seed it.
+export function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
+  }
+  return arr
+}
+
+// Where a just-missed question re-enters the queue: uniformly random between
+// REQUEUE_GAP cards ahead and the end, so its return is never predictable.
+export function requeuePosition(idx: number, len: number, rng: () => number = Math.random): number {
+  const lo = Math.min(idx + 1 + REQUEUE_GAP, len)
+  return lo + Math.floor(rng() * (len - lo + 1))
+}
 
 export function gradeAnswer(entry: ProgressEntry | undefined, correct: boolean, now = Date.now()): ProgressEntry {
   const e = entry || { box: 0, due: 0, seen: 0, right: 0, wrong: 0 }
@@ -57,11 +74,17 @@ export function queueFor(questions: Question[], progress: Record<string, Progres
 // spent — unseen questions fill the round first, due reviews (weakest first)
 // fill whatever room is left. Missed questions still repeat within the round,
 // and once the catalog is exhausted rounds become pure weakest-first review.
-export function buildSession(questions: Question[], progress: Record<string, ProgressEntry>, size = ROUND_SIZE, now = Date.now()) {
+//
+// The fresh pool is shuffled BEFORE slicing: the catalog is grouped by topic,
+// so catalog order would serve monotopic rounds. A uniform shuffle samples
+// categories proportionally to what's left. Due questions keep weakest-first
+// SELECTION (which ones get in), then the whole round is shuffled for
+// presentation so hard reviews interleave instead of front-loading.
+export function buildSession(questions: Question[], progress: Record<string, ProgressEntry>, size = ROUND_SIZE, now = Date.now(), rng: () => number = Math.random) {
   const { due, fresh } = queueFor(questions, progress, now)
-  const session = fresh.slice(0, size)
+  const session = shuffle(fresh, rng).slice(0, size)
   if (session.length < size) session.push(...due.slice(0, size - session.length))
-  return session
+  return shuffle(session, rng)
 }
 
 export function summarize(questions: Question[], progress: Record<string, ProgressEntry>) {

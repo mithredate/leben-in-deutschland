@@ -4,6 +4,8 @@
 // Boxes: 0 = new, 1 = wrong/relearning, 2..4 = learning, 5 = mastered.
 // First-sight-correct jumps straight to box 4 ("triage"): time goes to the
 // unknown questions, not to re-confirming common sense.
+import 'dart:math';
+
 import 'models.dart';
 
 // TUNING POINT: the intervals are the levers of the whole system.
@@ -19,8 +21,16 @@ const int _hourMs = 3600 * 1000;
 
 // One learning round; same algorithm every round, do as many as time allows.
 const int kRoundSize = 30;
-// A missed question comes back this many cards later in the same round.
+// A missed question comes back at least this many cards later in the same
+// round, at a random position after that.
 const int kRequeueGap = 5;
+
+// Where a just-missed question re-enters the queue: uniformly random between
+// kRequeueGap cards ahead and the end, so its return is never predictable.
+int requeuePosition(int idx, int len, {Random? rng}) {
+  final lo = (idx + 1 + kRequeueGap) < len ? (idx + 1 + kRequeueGap) : len;
+  return lo + (rng ?? Random()).nextInt(len - lo + 1);
+}
 
 int _now() => DateTime.now().millisecondsSinceEpoch;
 
@@ -70,14 +80,21 @@ Queues queueFor(List<Question> questions, Map<String, ProgressEntry> progress, {
 // spent — unseen questions fill the round first, due reviews (weakest first)
 // fill whatever room is left. Missed questions still repeat within the round,
 // and once the catalog is exhausted rounds become pure weakest-first review.
+//
+// The fresh pool is shuffled BEFORE slicing: the catalog is grouped by topic,
+// so catalog order would serve monotopic rounds. A uniform shuffle samples
+// categories proportionally to what's left. Due questions keep weakest-first
+// SELECTION (which ones get in), then the whole round is shuffled for
+// presentation so hard reviews interleave instead of front-loading.
 List<Question> buildSession(List<Question> questions, Map<String, ProgressEntry> progress,
-    {int size = kRoundSize, int? now}) {
+    {int size = kRoundSize, int? now, Random? rng}) {
+  final r = rng ?? Random();
   final q = queueFor(questions, progress, now: now);
-  final session = q.fresh.take(size).toList();
+  final session = (q.fresh..shuffle(r)).take(size).toList();
   if (session.length < size) {
     session.addAll(q.due.take(size - session.length));
   }
-  return session;
+  return session..shuffle(r);
 }
 
 class Summary {

@@ -1,6 +1,8 @@
 // Parity tests for the SRS engine — mirrors the behavior documented in the
 // PWA's app/composables/useSrs.ts. If these fail after an edit, web and app
 // scheduling have diverged.
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lid_trainer/models.dart';
 import 'package:lid_trainer/srs.dart';
@@ -81,6 +83,34 @@ void main() {
       expect(r.due.map((x) => x.id).toList(), ['c', 'b', 'a']);
     });
 
+    test('fresh questions are shuffled, not served in catalog order', () {
+      final questions = [for (var i = 0; i < 60; i++) q('$i')];
+      final session =
+          buildSession(questions, {}, size: kRoundSize, now: now, rng: Random(42));
+      expect(session.length, kRoundSize);
+      // a permutation drawn from the pool, but not the catalog prefix
+      final catalogPrefix = [for (var i = 0; i < kRoundSize; i++) '$i'];
+      expect(session.map((x) => x.id).toList(), isNot(equals(catalogPrefix)));
+      expect(session.map((x) => x.id).toSet().length, kRoundSize);
+    });
+
+    test('mixed round: all fresh included, weakest due fill the rest', () {
+      final questions = [for (var i = 0; i < 10; i++) q('$i')];
+      final progress = {
+        // 6 seen: 5 due (boxes 1..4), one mastered
+        for (var i = 0; i < 5; i++)
+          '$i': ProgressEntry(box: (i % 4) + 1, due: now - 1000, seen: 2, right: 1),
+        '5': ProgressEntry(box: 5, due: now - 1000, seen: 2, right: 2),
+      };
+      final session =
+          buildSession(questions, progress, size: 8, now: now, rng: Random(7));
+      final ids = session.map((x) => x.id).toSet();
+      // 4 fresh (6..9) + 4 weakest due; mastered '5' excluded
+      expect(ids.containsAll({'6', '7', '8', '9'}), isTrue);
+      expect(ids.contains('5'), isFalse);
+      expect(session.length, 8);
+    });
+
     test('mastered (box 5) never re-enters the queue', () {
       final questions = [q('a')];
       final progress = {'a': ProgressEntry(box: 5, due: now - 10, seen: 2, right: 2)};
@@ -113,6 +143,27 @@ void main() {
       final t = dailyTarget(50, examDate, now: now);
       expect(t.perDay, (50 / t.daysLeft).ceil());
       expect(t.daysLeft, greaterThanOrEqualTo(4));
+    });
+  });
+
+  group('requeuePosition', () {
+    test('never earlier than the minimum gap, never past the end', () {
+      final rng = Random(1);
+      for (var i = 0; i < 200; i++) {
+        final pos = requeuePosition(3, 30, rng: rng);
+        expect(pos, greaterThanOrEqualTo(3 + 1 + kRequeueGap));
+        expect(pos, lessThanOrEqualTo(30));
+      }
+    });
+
+    test('varies instead of landing on a fixed offset', () {
+      final rng = Random(2);
+      final seen = {for (var i = 0; i < 200; i++) requeuePosition(0, 30, rng: rng)};
+      expect(seen.length, greaterThan(5));
+    });
+
+    test('clamps to the end when little of the round remains', () {
+      expect(requeuePosition(28, 30, rng: Random(3)), 30);
     });
   });
 
