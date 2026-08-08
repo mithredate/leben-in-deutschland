@@ -85,12 +85,15 @@ const inputCls = 'min-h-[46px] w-full appearance-none rounded-xl border-[1.5px] 
       </div>
     </div>
 
-    <p class="mx-0.5 my-2 text-[13px] text-muted">
-      {{ rows.length }} Treffer
-      <template v-if="rows.length">
-        · <button class="font-semibold text-brand-red underline" @click="emit('practice', shuffled(rows).slice(0, 30))">diese üben</button>
-      </template>
-    </p>
+    <p class="mx-0.5 my-2 text-[13px] text-muted">{{ rows.length }} Treffer</p>
+
+    <button
+      v-if="rows.length"
+      class="mb-2 block min-h-[52px] w-full rounded-app bg-gold px-4 py-3 font-bold text-gold-ink"
+      @click="emit('practice', shuffled(rows).slice(0, 30))"
+    >
+      Üben starten ({{ Math.min(rows.length, 30) }} {{ Math.min(rows.length, 30) === 1 ? 'Frage' : 'Fragen' }})
+    </button>
 
     <ul>
       <li

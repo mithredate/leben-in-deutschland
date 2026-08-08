@@ -29,7 +29,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   const general = questions.value.filter((q) => !q.state)
   const state = questions.value.filter((q) => q.state === settings.value.state)
-  qs.value = shuffled([...shuffled(general).slice(0, 30), ...shuffled(state).slice(0, 3)])
+  // like the real questionnaire: general questions 1-30, Bundesland questions 31-33
+  qs.value = [...shuffled(general).slice(0, 30), ...shuffled(state).slice(0, 3)]
   picked.value = new Array(qs.value.length).fill(null)
   const deadline = Date.now() + EXAM_MINUTES * 60 * 1000
   timer = setInterval(() => {
@@ -146,8 +147,11 @@ const aEn = (q: Question, i: number | null) => {
         <button class="min-h-[52px] flex-1 rounded-app border-[1.5px] border-line font-bold" :disabled="idx === 0" @click="idx--">
           ← Zurück
         </button>
-        <button class="min-h-[52px] flex-1 rounded-app bg-gold font-bold text-gold-ink" :disabled="idx >= qs.length - 1" @click="idx++">
+        <button v-if="idx < qs.length - 1" class="min-h-[52px] flex-1 rounded-app bg-gold font-bold text-gold-ink" @click="idx++">
           Weiter →
+        </button>
+        <button v-else class="min-h-[52px] flex-1 rounded-app bg-gold font-bold text-gold-ink" @click="trySubmit">
+          Abgeben ✓
         </button>
       </div>
     </template>

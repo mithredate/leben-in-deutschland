@@ -41,7 +41,8 @@ const showAlt = ref(false)
 const marked = ref(false)
 
 watch(() => props.q, () => {
-  order.value = isPositional.value ? [0, 1, 2, 3] : shuffled([0, 1, 2, 3])
+  // exam mode keeps catalog answer order like the printed test booklet
+  order.value = props.mode === 'exam' || isPositional.value ? [0, 1, 2, 3] : shuffled([0, 1, 2, 3])
   localAnswered.value = null
   flipped.value = false
   showAlt.value = false
